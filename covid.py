@@ -119,7 +119,7 @@ def compute_counties_data():
 # In[5]:
 
 
-POP_DATA = pd.read_csv(os.path.join(PREFIX, 'ACSDT5Y2018.B01003_data_with_overlays_2020-07-10T111915.csv'))
+POP_DATA = pd.read_csv('pop_data.csv')
 
 
 # In[34]:
@@ -190,7 +190,8 @@ gh_counties_data_file = os.path.join(PREFIX, 'covid-19-data', 'us-counties.csv')
 drop_states = ['Guam', 'Northern Mariana Islands', 'Virgin Islands', 'Puerto Rico']
 drop_counties = drop_states + ['Hawaii', 'Alaska']
 
-if not os.path.exists('us-states.csv') or os.stat(gh_states_data_file).st_mtime > os.stat('us-states.csv').st_mtime:
+if not os.path.exists('us-states.csv') or (os.path.exists(gh_states_data_file) and 
+     os.stat(gh_states_data_file).st_mtime > os.stat('us-states.csv').st_mtime):
     GH_STATES_DATA = pd.read_csv(gh_states_data_file, parse_dates=['date'])
     for state in drop_states:
         GH_STATES_DATA.drop(GH_STATES_DATA[GH_STATES_DATA['state'] == state].index, inplace=True)
@@ -199,7 +200,8 @@ if not os.path.exists('us-states.csv') or os.stat(gh_states_data_file).st_mtime 
 else:
     GH_STATES_DATA = pd.read_csv('us-states.csv', parse_dates=['date', 'avg_dates'])
     
-if not os.path.exists('us-counties.csv') or os.stat(gh_counties_data_file).st_mtime > os.stat('us-counties.csv').st_mtime:
+if not os.path.exists('us-counties.csv') or (os.path.exists(gh_counties_data_file) and 
+     os.stat(gh_counties_data_file).st_mtime > os.stat('us-counties.csv').st_mtime):
     GH_COUNTIES_DATA = pd.read_csv(gh_counties_data_file, parse_dates=['date'])
     for state in drop_counties:
         GH_COUNTIES_DATA.drop(GH_COUNTIES_DATA[GH_COUNTIES_DATA['state'] == state].index, inplace=True)
