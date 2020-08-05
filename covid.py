@@ -10,6 +10,7 @@ import os
 import requests
 import shutil
 import socket
+import sys
 import tempfile
 
 import pandas as pd
@@ -181,32 +182,30 @@ def population(region):
 
 # In[7]:
 
+if __name__ == '__main__':
+    
+    gh_states_data_file = os.path.join('covid-19-data', 'us-states.csv')
+    gh_counties_data_file = os.path.join('covid-19-data', 'us-counties.csv')
 
-gh_states_data_file = os.path.join('covid-19-data', 'us-states.csv')
-gh_counties_data_file = os.path.join('covid-19-data', 'us-counties.csv')
+    drop_states = ['Guam', 'Northern Mariana Islands', 'Virgin Islands', 'Puerto Rico']
+    drop_counties = drop_states + ['Hawaii', 'Alaska']
 
-drop_states = ['Guam', 'Northern Mariana Islands', 'Virgin Islands', 'Puerto Rico']
-drop_counties = drop_states + ['Hawaii', 'Alaska']
-
-if not os.path.exists('us-states.csv') or (os.path.exists(gh_states_data_file) and 
-     os.stat(gh_states_data_file).st_mtime > os.stat('us-states.csv').st_mtime):
     GH_STATES_DATA = pd.read_csv(gh_states_data_file, parse_dates=['date'])
     for state in drop_states:
         GH_STATES_DATA.drop(GH_STATES_DATA[GH_STATES_DATA['state'] == state].index, inplace=True)
     compute_states_data()
     GH_STATES_DATA.to_csv('us-states.csv')
-else:
-    GH_STATES_DATA = pd.read_csv('us-states.csv', parse_dates=['date', 'avg_dates'])
     
-if not os.path.exists('us-counties.csv') or (os.path.exists(gh_counties_data_file) and 
-     os.stat(gh_counties_data_file).st_mtime > os.stat('us-counties.csv').st_mtime):
     GH_COUNTIES_DATA = pd.read_csv(gh_counties_data_file, parse_dates=['date'])
     for state in drop_counties:
         GH_COUNTIES_DATA.drop(GH_COUNTIES_DATA[GH_COUNTIES_DATA['state'] == state].index, inplace=True)
     compute_counties_data()
     GH_COUNTIES_DATA.to_csv('us-counties.csv')
-else:
-    GH_COUNTIES_DATA = pd.read_csv('us-counties.csv', parse_dates=['date', 'avg_dates'])
+    
+    sys.exit(0)
+
+GH_STATES_DATA = pd.read_csv('us-states.csv', parse_dates=['date', 'avg_dates'])
+GH_COUNTIES_DATA = pd.read_csv('us-counties.csv', parse_dates=['date', 'avg_dates'])
 
 STATES = sorted(GH_STATES_DATA['state'].unique())
 COUNTIES = sorted({f'{state}, {county}' for county, state in zip(GH_COUNTIES_DATA['county'], GH_COUNTIES_DATA['state'])})
