@@ -18,8 +18,6 @@ import numpy as np
 import imageio
 from tqdm import tqdm
 
-PREFIX = 'C:\\Users\\watso' if socket.gethostname() == 'DESKTOP-VD3TK5G' else 'K:\\'
-
 
 # In[2]:
 
@@ -184,8 +182,8 @@ def population(region):
 # In[7]:
 
 
-gh_states_data_file = os.path.join(PREFIX, 'covid-19-data', 'us-states.csv')
-gh_counties_data_file = os.path.join(PREFIX, 'covid-19-data', 'us-counties.csv')
+gh_states_data_file = os.path.join('covid-19-data', 'us-states.csv')
+gh_counties_data_file = os.path.join('covid-19-data', 'us-counties.csv')
 
 drop_states = ['Guam', 'Northern Mariana Islands', 'Virgin Islands', 'Puerto Rico']
 drop_counties = drop_states + ['Hawaii', 'Alaska']
