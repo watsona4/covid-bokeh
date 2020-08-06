@@ -115,10 +115,75 @@ def compute_counties_data():
         GH_COUNTIES_DATA.loc[subset.index, 'avg_deaths_pc'] = avg_deaths / pop * 100000
 
 
+def compute_nnl_data():
+
+    global NNL_DATA
+
+    site_names = {'nnl-bettis': 'NNL Bettis',
+                  'nnl-knolls': 'NNL Knolls',
+                  'nnl-ks': 'NNL Kesselring',
+                  'nnl-nptu': 'NNL NPTU-Charleston',
+                  'nnl-nrf': 'NNL NRF',
+                  'nnl-ls': 'NNL Liberty Street',
+                  'non-nnl-bettis': 'Non-NNL Bettis',
+                  'non-nnl-knolls': 'Non-NNL Knolls',
+                  'non-nnl-ks': 'Non-NNL Kesselring',
+                  'non-nnl-nptu': 'Non-NNL NPTU-Charleston',
+                  'non-nnl-nrf': 'Non-NNL NRF',
+                  'non-nnl-ls': 'Non-NNL Liberty Street',}
+
+    idx = pd.date_range(NNL_DATA['date'].min(), NNL_DATA['date'].max())
+    NNL_DATA.sort_values('date', inplace=True)
+    NNL_DATA.index = pd.DatetimeIndex(NNL_DATA['date'])
+    NNL_DATA = NNL_DATA.reindex(idx, method='pad')
+
+    NNL_DATA['date'] = NNL_DATA.index
+    NNL_DATA.index = pd.RangeIndex(len(NNL_DATA))
+
+    data = {}
+    for index, row in tqdm(NNL_DATA.iterrows()):
+        for site in NNL_DATA.columns[1:]:
+            data.setdefault('date', []).append(row['date'])
+            data.setdefault('site', []).append(site_names[site])
+            data.setdefault('cases', []).append(row[site])
+    NNL_DATA = pd.DataFrame(data)
+
+    NNL_DATA.sort_values('date', inplace=True)
+    for site in tqdm(NNL_DATA['site'].unique()):
+
+        slicer = NNL_DATA['site'] == site
+        subset = NNL_DATA.loc[slicer, :]
+
+        pop = population(site)
+
+        avg_dates = subset['date'] - (timedelta(days=3) + timedelta(hours=12))
+        diff_cases = subset['cases'].diff()
+        avg_cases = subset['cases'].diff().rolling(7).mean()
+
+        NNL_DATA.loc[subset.index, 'diff_cases'] = diff_cases
+        NNL_DATA.loc[subset.index, 'diff_cases_pc'] = diff_cases / pop * 100000
+        NNL_DATA.loc[subset.index, 'avg_dates'] = avg_dates
+        NNL_DATA.loc[subset.index, 'avg_cases'] = avg_cases
+        NNL_DATA.loc[subset.index, 'avg_cases_pc'] = avg_cases / pop * 100000
+
 # In[5]:
 
 
 POP_DATA = pd.read_csv('pop_data.csv')
+
+NNL_POP = {'NNL Bettis': 2791,
+           'NNL Knolls': 2226,
+           'NNL Kesselring': 286,
+           'NNL NPTU-Charleston': 352,
+           'NNL NRF': 1401,
+           'NNL Liberty Street': 331,
+           'Non-NNL Bettis': 226,
+           'Non-NNL Knolls': 137,
+           'Non-NNL Kesselring': 524,
+           'Non-NNL NPTU-Charleston': 1,
+           'Non-NNL NRF': 224,
+           'Non-NNL Liberty Street': 105,
+}
 
 
 # In[34]:
@@ -173,6 +238,8 @@ def population(region):
         return 50657
     if region == 'Missouri, Kansas City':
         return 491918
+    if 'NNL' in region:
+        return NNL_POP[region]
     entry = get_pop_entry(region)
     try:
         return int(entry.values[0][2])
@@ -202,10 +269,15 @@ if __name__ == '__main__':
     compute_counties_data()
     GH_COUNTIES_DATA.to_csv('us-counties.csv')
     
+    NNL_DATA = pd.read_csv('nnl-covid.csv', parse_dates=['date'])
+    compute_nnl_data()
+    NNL_DATA.to_csv('nnl-detailed.csv')
+
     sys.exit(0)
 
 GH_STATES_DATA = pd.read_csv('us-states.csv', parse_dates=['date', 'avg_dates'])
 GH_COUNTIES_DATA = pd.read_csv('us-counties.csv', parse_dates=['date', 'avg_dates'])
+NNL_DATA = pd.read_csv('nnl-detailed.csv', parse_dates=['date', 'avg_dates'])
 
 STATES = sorted(GH_STATES_DATA['state'].unique())
 COUNTIES = sorted({f'{state}, {county}' for county, state in zip(GH_COUNTIES_DATA['county'], GH_COUNTIES_DATA['state'])})
@@ -265,6 +337,9 @@ def compute_linear_palette(palette, low, high, value):
 
 
 def get_dataset(region):
+
+    if 'NNL' in region:
+        return NNL_DATA[NNL_DATA['site'] == region]
 
     pop_entry = get_pop_entry(region)
     
@@ -586,6 +661,23 @@ class CountyDisplay(StateDisplay):
 
 # show(Application(FunctionHandler(CountyDisplay().run)))
 
+        
+class NNLDisplay(StateDisplay):
+    
+    def __init__(self):
+
+        sites = list(NNL_DATA['site'].unique())
+        sites += ['New York, Schenectady', 'Pennsylvania, Allegheny']
+
+        super().__init__(sorted(sites))
+
+        self.state_selection.title = 'Locations:'
+        self.state_selection.value = ['NNL Knolls', 'NNL Bettis', 'New York, Schenectady', 'Pennsylvania, Allegheny']
+        
+        self.data_getter.labels = ['Cases']
+        
+        self.show_constant_date = False
+
 
 # In[19]:
 
@@ -896,7 +988,8 @@ tab2 = Panel(child=CountyDisplay().run(), title='County Comparisons')
 tab3 = Panel(child=SingleStateDisplay().run(), title='State Data')
 tab4 = Panel(child=StateMap().run(), title='State Map')
 tab5 = Panel(child=CountyMap().run(), title='County Map')
+tab6 = Panel(child=NNLDisplay().run(), title='NNL Comparisons')
 
-tabs = Tabs(tabs=[tab1, tab2, tab3, tab4, tab5])
+tabs = Tabs(tabs=[tab1, tab2, tab3, tab4, tab5, tab6])
 
 curdoc().add_root(tabs)
