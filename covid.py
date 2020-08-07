@@ -548,6 +548,8 @@ class StateDisplay:
             value=(datetime.today() - timedelta(days=1)).date(),
         )
 
+        self.total = CheckboxGroup(labels=["Show total"])
+
         self.src = None
         self.p = None
         self.logp = None
@@ -558,6 +560,10 @@ class StateDisplay:
 
         color_cycle = cycle(Category20_20)
         palette = [next(color_cycle) for _ in self.dataset]
+
+        total = self.total.active == [0]
+
+        totals = None
 
         for state_name in state_list:
 
@@ -571,6 +577,24 @@ class StateDisplay:
                 state_name, per_capita, data_getter, constant_date
             )
 
+            subtotal = pd.Series(avg_data.values[7:])
+            subtotal.index = pd.DatetimeIndex(avg_dates.values[7:])
+
+            idx = pd.date_range(subtotal.index.min(), subtotal.index.max())
+            subtotal = subtotal.reindex(idx)
+            subtotal.interpolate(method="time", inplace=True)
+
+            if totals is None:
+                totals = subtotal
+            else:
+                idx = pd.date_range(
+                    min(subtotal.index.min(), totals.index.min()),
+                    max(subtotal.index.max(), totals.index.max()),
+                )
+                totals = totals.reindex(idx, fill_value=0)
+                subtotal = subtotal.reindex(idx, fill_value=0)
+                totals += subtotal
+
             by_state.setdefault("avg_date", []).append(avg_dates.values)
             by_state.setdefault("avg_data", []).append(avg_data.values)
 
@@ -578,6 +602,13 @@ class StateDisplay:
             by_state.setdefault("color", []).append(
                 palette[self.dataset.index(state_name)]
             )
+
+        if total:
+            by_state.setdefault("avg_date", []).append(totals.index.values)
+            by_state.setdefault("avg_data", []).append(totals.values)
+
+            by_state.setdefault("state", []).append("Total")
+            by_state.setdefault("color", []).append("black")
 
         return label, ColumnDataSource(by_state)
 
@@ -650,6 +681,7 @@ class StateDisplay:
         self.data_getter.on_change("active", self.update)
         self.plot_type.on_change("active", self.update)
         self.constant_date.on_change("value", self.update)
+        self.total.on_change("active", self.update)
 
         controls = column(
             [
@@ -658,6 +690,7 @@ class StateDisplay:
                 self.data_getter,
                 self.plot_type,
                 self.constant_date,
+                self.total,
             ]
         )
 
