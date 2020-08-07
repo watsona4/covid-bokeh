@@ -65,43 +65,44 @@ EMPTY_COUNTIES = {
     "District of Columbia": ["District of Columbia"],
     "Maryland": ["Baltimore city"],
     "Virginia": [
-        "Virginia Beach city",
         "Alexandria city",
-        "Harrisonburg city",
-        "Charlottesville city",
-        "Williamsburg city",
-        "Richmond city",
-        "Newport News city",
-        "Norfolk city",
-        "Portsmouth city",
-        "Suffolk city",
-        "Danville city",
-        "Chesapeake city",
-        "Fredericksburg city",
-        "Manassas city",
-        "Hampton city",
-        "Lynchburg city",
-        "Poquoson city",
-        "Radford city",
         "Bristol city",
-        "Galax city",
-        "Roanoke city",
-        "Hopewell city",
-        "Manassas Park city",
-        "Winchester city",
-        "Petersburg city",
-        "Franklin city",
-        "Waynesboro city",
-        "Salem city",
         "Buena Vista city",
-        "Emporia city",
-        "Lexington city",
-        "Staunton city",
+        "Charlottesville city",
+        "Chesapeake city",
         "Colonial Heights city",
+        "Covington city",
+        "Danville city",
+        "Emporia city",
         "Fairfax city",
         "Falls Church city",
+        "Franklin city",
+        "Fredericksburg city",
+        "Galax city",
+        "Hampton city",
+        "Harrisonburg city",
+        "Hopewell city",
+        "Lexington city",
+        "Lynchburg city",
+        "Manassas Park city",
+        "Manassas city",
+        "Martinsville city",
+        "Newport News city",
+        "Norfolk city",
         "Norton city",
-        "Covington city",
+        "Petersburg city",
+        "Poquoson city",
+        "Portsmouth city",
+        "Radford city",
+        "Richmond city",
+        "Roanoke city",
+        "Salem city",
+        "Staunton city",
+        "Suffolk city",
+        "Virginia Beach city",
+        "Waynesboro city",
+        "Williamsburg city",
+        "Winchester city",
     ],
     "Nevada": ["Carson City"],
     "Missouri": ["St. Louis city"],
@@ -318,12 +319,14 @@ def compute_nnl_data():
         avg_dates = subset["date"] - (timedelta(days=3) + timedelta(hours=12))
         diff_cases = subset["cases"].diff()
         avg_cases = subset["cases"].diff().rolling(7).mean()
+        diff_cases_pc = diff_cases / pop * 100000
+        avg_cases_pc = avg_cases / pop * 100000
 
         NNL_DATA.loc[subset.index, "diff_cases"] = diff_cases
-        NNL_DATA.loc[subset.index, "diff_cases_pc"] = diff_cases / pop * 100000
+        NNL_DATA.loc[subset.index, "diff_cases_pc"] = diff_cases_pc
         NNL_DATA.loc[subset.index, "avg_dates"] = avg_dates
         NNL_DATA.loc[subset.index, "avg_cases"] = avg_cases
-        NNL_DATA.loc[subset.index, "avg_cases_pc"] = avg_cases / pop * 100000
+        NNL_DATA.loc[subset.index, "avg_cases_pc"] = avg_cases_pc
 
 
 def format_region_name(region):
@@ -651,17 +654,13 @@ class StateDisplay:
 
         self.logp.legend.location = "top_left"
 
-    def update(self, attr, old, new):
-
-        states_to_plot = sorted(self.state_selection.value)
-
-        label, new_src = self.make_dataset(states_to_plot)
+    def update_data(self, label, src):
 
         if self.src is None:
-            self.src = new_src
+            self.src = src
             self.make_plot()
         else:
-            self.src.data.update(new_src.data)
+            self.src.data.update(src.data)
 
         if self.plot_type.active == 0:
             self.p.visible = True
@@ -672,6 +671,23 @@ class StateDisplay:
 
         self.p.yaxis.axis_label = label
         self.logp.yaxis.axis_label = label
+
+        if len(self.data_getter.labels) == 1:
+            self.data_getter.visible = False
+
+        data_getter = self.data_getter.labels[self.data_getter.active].lower()
+        self.constant_date.visible = data_getter in (
+            "constant positivity",
+            "constant testing",
+        )
+
+    def update(self, attr, old, new):
+
+        states_to_plot = sorted(self.state_selection.value)
+
+        label, new_src = self.make_dataset(states_to_plot)
+
+        self.update_data(label, new_src)
 
     def run(self):
 
@@ -701,35 +717,15 @@ class StateDisplay:
         return row(controls, plots)
 
 
-class SingleStateDisplay:
+class SingleStateDisplay(StateDisplay):
     def __init__(self):
+
+        super().__init__()
 
         self.state = "New York"
         self.menu = STATES
 
         self.state_selection = Dropdown(menu=self.menu, label=self.state)
-        self.per_capita = RadioGroup(labels=["Total", "Per Capita"], active=0)
-        self.data_getter = RadioGroup(
-            labels=[
-                "Cases",
-                "Deaths",
-                "Positivity",
-                "Constant Positivity",
-                "Constant Testing",
-            ],
-            active=0,
-        )
-        self.plot_type = RadioGroup(labels=["Linear", "Logarithmic"], active=0)
-
-        self.constant_date = DatePicker(
-            title="Constant Date",
-            value=(datetime.today() - timedelta(days=1)).date(),
-        )
-        self.show_constant_date = True
-
-        self.src = None
-        self.p = None
-        self.logp = None
 
     def make_dataset(self, state_name=""):
 
@@ -805,21 +801,7 @@ class SingleStateDisplay:
 
         label, new_src = self.make_dataset(self.state)
 
-        if self.src is None:
-            self.src = new_src
-            self.make_plot()
-        else:
-            self.src.data.update(new_src.data)
-
-        if self.plot_type.active == 0:
-            self.p.visible = True
-            self.logp.visible = False
-        else:
-            self.p.visible = False
-            self.logp.visible = True
-
-        self.p.yaxis.axis_label = label
-        self.logp.yaxis.axis_label = label
+        self.update_data(label, new_src)
 
     def update_selection(self, event):
         self.state = event.item
@@ -835,16 +817,15 @@ class SingleStateDisplay:
         self.plot_type.on_change("active", self.update)
         self.constant_date.on_change("value", self.update)
 
-        controls = [
-            self.state_selection,
-            self.per_capita,
-            self.data_getter,
-            self.plot_type,
-        ]
-        if self.show_constant_date:
-            controls.append(self.constant_date)
-
-        controls = column(controls)
+        controls = column(
+            [
+                self.state_selection,
+                self.per_capita,
+                self.data_getter,
+                self.plot_type,
+                self.constant_date,
+            ]
+        )
 
         self.update_selection(MenuItemClick(None, self.state))
 
