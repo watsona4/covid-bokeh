@@ -558,7 +558,7 @@ class StateDisplay:
             value=(datetime.today() - timedelta(days=1)).date(),
         )
 
-        self.total = CheckboxGroup(labels=["Show total"])
+        self.total = CheckboxGroup(labels=["Show total only"])
 
         self.src = None
         self.p = None
@@ -571,7 +571,7 @@ class StateDisplay:
         color_cycle = cycle(Category20_20)
         palette = [next(color_cycle) for _ in self.dataset]
 
-        total = self.total.active == [0]
+        total_only = self.total.active == [0]
 
         totals = None
 
@@ -605,18 +605,18 @@ class StateDisplay:
                 subtotal = subtotal.reindex(idx, fill_value=0)
                 totals += subtotal
 
-            by_state["avg_date"].append(avg_dates.values)
-            by_state["avg_data"].append(avg_data.values)
+            if not total_only:
+                by_state["avg_date"].append(avg_dates.values)
+                by_state["avg_data"].append(avg_data.values)
 
-            by_state["state"].append(state_name)
-            by_state["color"].append(
-                palette[self.dataset.index(state_name)]
-            )
+                by_state["state"].append(state_name)
+                by_state["color"].append(
+                    palette[self.dataset.index(state_name)]
+                )
 
-        if total:
+        if len(state_list) != 1:
             by_state["avg_date"].append(totals.index.values)
             by_state["avg_data"].append(totals.values)
-
             by_state["state"].append("Total")
             by_state["color"].append("black")
 
@@ -695,6 +695,8 @@ class StateDisplay:
         label, new_src = self.make_dataset(states_to_plot)
 
         self.update_data(label, new_src)
+
+        self.total.visible = len(states_to_plot) != 1
 
     def run(self):
 
@@ -831,6 +833,7 @@ class SingleStateDisplay(StateDisplay):
                 self.data_getter,
                 self.plot_type,
                 self.constant_date,
+                self.total,
             ]
         )
 
