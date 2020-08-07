@@ -38,8 +38,10 @@ from bokeh.sampledata.us_counties import data as US_COUNTIES
 from bokeh.sampledata.us_states import data as US_STATES
 from tqdm import tqdm
 
-del US_STATES["HI"]
-del US_STATES["AK"]
+if "HI" in US_STATES:
+    del US_STATES["HI"]
+if "AK" in US_STATES:
+    del US_STATES["AK"]
 
 PALETTE = Plasma256
 
@@ -300,12 +302,12 @@ def compute_nnl_data():
     NNL_DATA["date"] = NNL_DATA.index
     NNL_DATA.index = pd.RangeIndex(len(NNL_DATA))
 
-    data = {}
+    data = {"date": [], "site": [], "cases": []}
     for index, irow in tqdm(NNL_DATA.iterrows()):
         for site in NNL_DATA.columns[1:]:
-            data.setdefault("date", []).append(irow["date"])
-            data.setdefault("site", []).append(site_names[site])
-            data.setdefault("cases", []).append(irow[site])
+            data["date"].append(irow["date"])
+            data["site"].append(site_names[site])
+            data["cases"].append(irow[site])
     NNL_DATA = pd.DataFrame(data)
 
     NNL_DATA.sort_values("date", inplace=True)
@@ -468,6 +470,7 @@ def get_data(region, per_capita=False, data_type="cases", constant_date=None):
         avg_data = subset[f"avg_{dt_label}"]
 
     elif data_type in (
+        "testing",
         "positivity",
         "constant positivity",
         "constant testing",
@@ -485,6 +488,9 @@ def get_data(region, per_capita=False, data_type="cases", constant_date=None):
         if data_type == "positivity":
             data = subset["positivity"]
             label = "Positivity (%)"
+        elif data_type == "testing":
+            data = subset["totalTestResultsIncrease"]
+            label = "Total Tests"
         elif data_type == "constant positivity":
             positivity = subset[subset["datetime"] == constant_date][
                 "positivity"
@@ -513,7 +519,7 @@ def get_data(region, per_capita=False, data_type="cases", constant_date=None):
 
         avg_data = data.rolling(7).mean()
 
-        if data_type != "positivity":
+        if data_type not in ("positivity", "testing"):
             if per_capita:
                 label = f"New {label.title()} per 100,000"
             else:
@@ -539,6 +545,7 @@ class StateDisplay:
                 "Cases",
                 "Deaths",
                 "Positivity",
+                "Testing",
                 "Constant Positivity",
                 "Constant Testing",
             ],
@@ -559,7 +566,7 @@ class StateDisplay:
 
     def make_dataset(self, state_list):
 
-        by_state = {}
+        by_state = {"avg_date": [], "avg_data": [], "state": [], "color": []}
 
         color_cycle = cycle(Category20_20)
         palette = [next(color_cycle) for _ in self.dataset]
@@ -598,20 +605,20 @@ class StateDisplay:
                 subtotal = subtotal.reindex(idx, fill_value=0)
                 totals += subtotal
 
-            by_state.setdefault("avg_date", []).append(avg_dates.values)
-            by_state.setdefault("avg_data", []).append(avg_data.values)
+            by_state["avg_date"].append(avg_dates.values)
+            by_state["avg_data"].append(avg_data.values)
 
-            by_state.setdefault("state", []).append(state_name)
-            by_state.setdefault("color", []).append(
+            by_state["state"].append(state_name)
+            by_state["color"].append(
                 palette[self.dataset.index(state_name)]
             )
 
         if total:
-            by_state.setdefault("avg_date", []).append(totals.index.values)
-            by_state.setdefault("avg_data", []).append(totals.values)
+            by_state["avg_date"].append(totals.index.values)
+            by_state["avg_data"].append(totals.values)
 
-            by_state.setdefault("state", []).append("Total")
-            by_state.setdefault("color", []).append("black")
+            by_state["state"].append("Total")
+            by_state["color"].append("black")
 
         return label, ColumnDataSource(by_state)
 
@@ -745,7 +752,7 @@ class SingleStateDisplay(StateDisplay):
         }
 
         if test_data is None:
-            data_dict["test_data"] = data.values.copy()
+            data_dict["test_data"] = np.empty_like(data.values, dtype=float)
             data_dict["test_data"][:] = np.NaN
         else:
             data_dict["test_data"] = test_data.values
@@ -1092,11 +1099,13 @@ class StateMap(MapBase):
             ],
             "value": data,
             "state": [state["name"] for state in US_STATES.values()],
+            "lons": [],
+            "lats": [],
         }
 
         for state in US_STATES.values():
-            color_data.setdefault("lons", []).append(state["lons"])
-            color_data.setdefault("lats", []).append(state["lats"])
+            color_data["lons"].append(state["lons"])
+            color_data["lats"].append(state["lats"])
 
         return label, maxval, ColumnDataSource(color_data)
 
@@ -1190,11 +1199,13 @@ class CountyMap(MapBase):
             "deaths_pc": deaths_pc,
             "population": pop,
             "name": [county["detailed name"] for county in counties.values()],
+            "lons": [],
+            "lats": [],
         }
 
         for county in counties.values():
-            color_data.setdefault("lons", []).append(county["lons"])
-            color_data.setdefault("lats", []).append(county["lats"])
+            color_data["lons"].append(county["lons"])
+            color_data["lats"].append(county["lats"])
 
         return label, maxval, ColumnDataSource(color_data)
 
