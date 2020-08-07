@@ -19,9 +19,13 @@ from bokeh.models import (
     BasicTicker,
     ColorBar,
     ColumnDataSource,
+    LinearAxis,
     LinearColorMapper,
+    LogAxis,
     LogColorMapper,
+    NumeralTickFormatter,
     Panel,
+    Range1d,
     Tabs,
 )
 from bokeh.models.widgets import (
@@ -32,7 +36,7 @@ from bokeh.models.widgets import (
     MultiSelect,
     RadioGroup,
 )
-from bokeh.palettes import Category20_20, Plasma256
+from bokeh.palettes import Category20_3, Category20_20, Plasma256
 from bokeh.plotting import curdoc, figure
 from bokeh.sampledata.us_counties import data as US_COUNTIES
 from bokeh.sampledata.us_states import data as US_STATES
@@ -844,6 +848,102 @@ class SingleStateDisplay(StateDisplay):
         return row(controls, plots)
 
 
+class RatioDisplay(SingleStateDisplay):
+
+    def make_dataset(self, state_name=""):
+
+        subset = GH_STATES_DATA.loc[GH_STATES_DATA["state"] == state_name,
+                                    ("avg_dates", "avg_cases", "avg_deaths")]
+
+        data_dict = {
+            "date": subset["avg_dates"].values,
+            "cases": subset["avg_cases"].values,
+            "deaths": subset["avg_deaths"].values,
+            "ratio": subset["avg_deaths"].values / subset["avg_cases"].values,
+        }
+
+        return "Total Cases and Deaths", ColumnDataSource(data_dict)
+
+    def make_plot(self):
+
+        self.p = figure(
+            x_axis_label="Date",
+            x_axis_type="datetime",
+            y_axis_label="Total Cases and Deaths",
+        )
+
+        self.p.extra_y_ranges = {"ratio_axis": Range1d()}
+
+        axis = LinearAxis(y_range_name="ratio_axis")
+        axis.formatter = NumeralTickFormatter(format="0 %")
+        self.p.add_layout(axis, "right")
+
+        colors = Category20_3
+
+        self.p.line(source=self.src, x="date", y="cases", line_width=2, color=colors[0], legend_label="Cases")
+        self.p.line(source=self.src, x="date", y="deaths", line_width=2, color=colors[1], legend_label="Deaths")
+        self.p.line(source=self.src, x="date", y="ratio", line_width=2, y_range_name="ratio_axis", color=colors[2], legend_label="Deaths/Cases")
+
+        self.p.legend.location = "top_left"
+
+        self.logp = figure(
+            x_axis_label="Date",
+            x_axis_type="datetime",
+            y_axis_label="Total Cases and Deaths",
+            y_axis_type="log",
+        )
+
+        self.logp.extra_y_ranges = {"ratio_axis": Range1d()}
+
+        logaxis = LogAxis(y_range_name="ratio_axis")
+        logaxis.formatter = NumeralTickFormatter(format="0 %")
+        self.logp.add_layout(logaxis, "right")
+
+        self.logp.line(source=self.src, x="date", y="cases", line_width=2, color=colors[0], legend_label="Cases")
+        self.logp.line(source=self.src, x="date", y="deaths", line_width=2, color=colors[1], legend_label="Deaths")
+        self.logp.line(source=self.src, x="date", y="ratio", line_width=2, y_range_name="ratio_axis", color=colors[2], legend_label="Deaths/Cases")
+
+        self.p.legend.location = "top_left"
+
+    def update(self, attr, old, new):
+
+        label, new_src = self.make_dataset(self.state)
+
+        self.update_data(label, new_src)
+
+        self.p.extra_y_ranges["ratio_axis"].start = 0.0
+        self.p.extra_y_ranges["ratio_axis"].end = 0.4
+
+        self.logp.extra_y_ranges["ratio_axis"].start = 0.001
+        self.logp.extra_y_ranges["ratio_axis"].end = 1.0
+
+        self.p.right[0].axis_label = "Deaths/Cases Ratio"
+        self.logp.right[0].axis_label = "Deaths/Cases Ratio"
+
+    def update_selection(self, event):
+        self.state = event.item
+        self.state_selection.label = self.state
+        self.update(None, None, None)
+
+    def run(self):
+
+        self.state_selection.on_click(self.update_selection)
+        self.plot_type.on_change("active", self.update)
+
+        controls = column(
+            [
+                self.state_selection,
+                self.plot_type,
+            ]
+        )
+
+        self.update_selection(MenuItemClick(None, self.state))
+
+        plots = column(self.p, self.logp)
+
+        return row(controls, plots)
+
+
 class CountyDisplay(StateDisplay):
     def __init__(self):
 
@@ -1260,10 +1360,11 @@ if __name__ == "__main__":
 tab1 = Panel(child=StateDisplay().run(), title="State Comparisons")
 tab2 = Panel(child=CountyDisplay().run(), title="County Comparisons")
 tab3 = Panel(child=SingleStateDisplay().run(), title="State Data")
-tab4 = Panel(child=StateMap().run(), title="State Map")
-tab5 = Panel(child=CountyMap().run(), title="County Map")
-tab6 = Panel(child=NNLDisplay().run(), title="NNL Comparisons")
+tab4 = Panel(child=RatioDisplay().run(), title="State Ratio")
+tab5 = Panel(child=StateMap().run(), title="State Map")
+tab6 = Panel(child=CountyMap().run(), title="County Map")
+tab7 = Panel(child=NNLDisplay().run(), title="NNL Comparisons")
 
-tabs = Tabs(tabs=[tab1, tab2, tab3, tab4, tab5, tab6])
+tabs = Tabs(tabs=[tab1, tab2, tab3, tab4, tab5, tab6, tab7])
 
 curdoc().add_root(tabs)
