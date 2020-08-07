@@ -861,7 +861,13 @@ class NNLDisplay(StateDisplay):
     def __init__(self):
 
         sites = list(NNL_DATA["site"].unique())
-        sites += ["New York, Schenectady", "Pennsylvania, Allegheny"]
+        sites += [
+            "New York, Schenectady",
+            "Pennsylvania, Allegheny",
+            "New York, Saratoga",
+            "Idaho, Butte",
+            "South Carolina, Berkeley",
+        ]
 
         super().__init__(sorted(sites))
 
