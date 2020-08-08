@@ -541,9 +541,13 @@ class StateDisplay:
             title="States:",
             options=self.dataset,
             value=["New York", "Texas"],
-            height=550,
+            sizing_mode="stretch_both",
         )
-        self.per_capita = RadioGroup(labels=["Total", "Per Capita"], active=0)
+        self.per_capita = RadioGroup(
+            labels=["Total", "Per Capita"],
+            active=0,
+            sizing_mode="stretch_width",
+        )
         self.data_getter = RadioGroup(
             labels=[
                 "Cases",
@@ -554,15 +558,23 @@ class StateDisplay:
                 "Constant Testing",
             ],
             active=0,
+            sizing_mode="stretch_width",
         )
-        self.plot_type = RadioGroup(labels=["Linear", "Logarithmic"], active=0)
+        self.plot_type = RadioGroup(
+            labels=["Linear", "Logarithmic"],
+            active=0,
+            sizing_mode="stretch_width",
+        )
 
         self.constant_date = DatePicker(
             title="Constant Date",
             value=(datetime.today() - timedelta(days=1)).date(),
+            sizing_mode="stretch_width",
         )
 
-        self.total = CheckboxGroup(labels=["Show total only"])
+        self.total = CheckboxGroup(
+            labels=["Show total only"], sizing_mode="stretch_width",
+        )
 
         self.src = None
         self.p = None
@@ -629,10 +641,10 @@ class StateDisplay:
     def make_plot(self):
 
         self.p = figure(
-            title="COVID-19 Cases",
             x_axis_label="Date",
             x_axis_type="datetime",
             y_axis_label="Total Cases",
+            width=900,
         )
 
         self.p.multi_line(
@@ -647,11 +659,11 @@ class StateDisplay:
         self.p.legend.location = "top_left"
 
         self.logp = figure(
-            title="COVID-19 Cases",
             x_axis_label="Date",
             x_axis_type="datetime",
             y_axis_label="Total Cases",
             y_axis_type="log",
+            width=900,
         )
 
         self.logp.multi_line(
@@ -720,14 +732,17 @@ class StateDisplay:
                 self.plot_type,
                 self.constant_date,
                 self.total,
-            ]
+            ],
+            sizing_mode="fixed",
+            width=300,
+            height=600,
         )
 
         self.update(None, None, None)
 
         plots = column(self.p, self.logp)
 
-        return row(controls, plots)
+        return row(controls, plots, sizing_mode="stretch_both")
 
 
 class SingleStateDisplay(StateDisplay):
@@ -738,7 +753,9 @@ class SingleStateDisplay(StateDisplay):
         self.state = "New York"
         self.menu = STATES
 
-        self.state_selection = Dropdown(menu=self.menu, label=self.state)
+        self.state_selection = Dropdown(
+            menu=self.menu, label=self.state, sizing_mode="stretch_width"
+        )
 
     def make_dataset(self, state_name=""):
 
@@ -768,10 +785,10 @@ class SingleStateDisplay(StateDisplay):
     def make_plot(self):
 
         self.p = figure(
-            title="COVID-19 Cases",
             x_axis_label="Date",
             x_axis_type="datetime",
             y_axis_label="Total Cases",
+            width=900,
         )
 
         self.p.vbar(source=self.src, x="date", top="data", color="orange")
@@ -787,11 +804,11 @@ class SingleStateDisplay(StateDisplay):
         self.p.legend.visible = False
 
         self.logp = figure(
-            title="COVID-19 Cases",
             x_axis_label="Date",
             x_axis_type="datetime",
             y_axis_label="Total Cases",
             y_axis_type="log",
+            width=900,
         )
 
         self.logp.vbar(
@@ -824,7 +841,6 @@ class SingleStateDisplay(StateDisplay):
     def run(self):
 
         self.state_selection.on_click(self.update_selection)
-
         self.per_capita.on_change("active", self.update)
         self.data_getter.on_change("active", self.update)
         self.plot_type.on_change("active", self.update)
@@ -838,22 +854,26 @@ class SingleStateDisplay(StateDisplay):
                 self.plot_type,
                 self.constant_date,
                 self.total,
-            ]
+            ],
+            sizing_mode="fixed",
+            width=300,
+            height=600,
         )
 
         self.update_selection(MenuItemClick(None, self.state))
 
         plots = column(self.p, self.logp)
 
-        return row(controls, plots)
+        return row(controls, plots, sizing_mode="stretch_both")
 
 
 class RatioDisplay(SingleStateDisplay):
-
     def make_dataset(self, state_name=""):
 
-        subset = GH_STATES_DATA.loc[GH_STATES_DATA["state"] == state_name,
-                                    ("avg_dates", "avg_cases", "avg_deaths")]
+        subset = GH_STATES_DATA.loc[
+            GH_STATES_DATA["state"] == state_name,
+            ("avg_dates", "avg_cases", "avg_deaths"),
+        ]
 
         data_dict = {
             "date": subset["avg_dates"].values,
@@ -870,6 +890,7 @@ class RatioDisplay(SingleStateDisplay):
             x_axis_label="Date",
             x_axis_type="datetime",
             y_axis_label="Total Cases and Deaths",
+            width=900,
         )
 
         self.p.extra_y_ranges = {"ratio_axis": Range1d()}
@@ -880,9 +901,31 @@ class RatioDisplay(SingleStateDisplay):
 
         colors = Category20_3
 
-        self.p.line(source=self.src, x="date", y="cases", line_width=2, color=colors[0], legend_label="Cases")
-        self.p.line(source=self.src, x="date", y="deaths", line_width=2, color=colors[1], legend_label="Deaths")
-        self.p.line(source=self.src, x="date", y="ratio", line_width=2, y_range_name="ratio_axis", color=colors[2], legend_label="Deaths/Cases")
+        self.p.line(
+            source=self.src,
+            x="date",
+            y="cases",
+            line_width=2,
+            color=colors[0],
+            legend_label="Cases",
+        )
+        self.p.line(
+            source=self.src,
+            x="date",
+            y="deaths",
+            line_width=2,
+            color=colors[1],
+            legend_label="Deaths",
+        )
+        self.p.line(
+            source=self.src,
+            x="date",
+            y="ratio",
+            line_width=2,
+            y_range_name="ratio_axis",
+            color=colors[2],
+            legend_label="Deaths/Cases",
+        )
 
         self.p.legend.location = "top_left"
 
@@ -891,6 +934,7 @@ class RatioDisplay(SingleStateDisplay):
             x_axis_type="datetime",
             y_axis_label="Total Cases and Deaths",
             y_axis_type="log",
+            width=900,
         )
 
         self.logp.extra_y_ranges = {"ratio_axis": Range1d()}
@@ -899,9 +943,31 @@ class RatioDisplay(SingleStateDisplay):
         logaxis.formatter = NumeralTickFormatter(format="0 %")
         self.logp.add_layout(logaxis, "right")
 
-        self.logp.line(source=self.src, x="date", y="cases", line_width=2, color=colors[0], legend_label="Cases")
-        self.logp.line(source=self.src, x="date", y="deaths", line_width=2, color=colors[1], legend_label="Deaths")
-        self.logp.line(source=self.src, x="date", y="ratio", line_width=2, y_range_name="ratio_axis", color=colors[2], legend_label="Deaths/Cases")
+        self.logp.line(
+            source=self.src,
+            x="date",
+            y="cases",
+            line_width=2,
+            color=colors[0],
+            legend_label="Cases",
+        )
+        self.logp.line(
+            source=self.src,
+            x="date",
+            y="deaths",
+            line_width=2,
+            color=colors[1],
+            legend_label="Deaths",
+        )
+        self.logp.line(
+            source=self.src,
+            x="date",
+            y="ratio",
+            line_width=2,
+            y_range_name="ratio_axis",
+            color=colors[2],
+            legend_label="Deaths/Cases",
+        )
 
         self.p.legend.location = "top_left"
 
@@ -931,17 +997,17 @@ class RatioDisplay(SingleStateDisplay):
         self.plot_type.on_change("active", self.update)
 
         controls = column(
-            [
-                self.state_selection,
-                self.plot_type,
-            ]
+            [self.state_selection, self.plot_type],
+            sizing_mode="fixed",
+            width=300,
+            height=600,
         )
 
         self.update_selection(MenuItemClick(None, self.state))
 
         plots = column(self.p, self.logp)
 
-        return row(controls, plots)
+        return row(controls, plots, sizing_mode="stretch_both")
 
 
 class CountyDisplay(StateDisplay):
@@ -988,21 +1054,26 @@ class MapBase:
     def __init__(self):
 
         self.per_capita = RadioGroup(
-            labels=["Total", "Per Capita", "Logarithmic"], active=0, width=100
+            labels=["Total", "Per Capita", "Logarithmic"],
+            active=0,
+            sizing_mode="stretch_width",
         )
         self.data_getter = RadioGroup(
-            labels=["Cases", "Deaths", "Positivity"], active=0, width=100
+            labels=["Cases", "Deaths", "Positivity"],
+            active=0,
+            sizing_mode="stretch_width",
         )
-        self.date = DatePicker(title="Date", width=200)
-        self.save_files = CheckboxGroup(labels=["Save files"])
+        self.date = DatePicker(title="Date", sizing_mode="stretch_width")
+        self.save_files = CheckboxGroup(
+            labels=["Save files"], sizing_mode="stretch_width"
+        )
+        self.button = Button(label="► Play", sizing_mode="stretch_width")
 
         self.tooltips = [("Name", "@name"), ("Value", "@value")]
 
         self.src = None
         self.p = None
 
-        self.doc = None
-        self.button = None
         self.callback = None
         self.counter = None
 
@@ -1026,9 +1097,9 @@ class MapBase:
 
         self.p = figure(
             toolbar_location="left",
-            plot_width=950,
-            aspect_ratio=1.8,
             tooltips=self.tooltips,
+            width=1200,
+            aspect_ratio=1.8,
         )
 
         self.p.patches(
@@ -1121,22 +1192,24 @@ class MapBase:
         self.per_capita.on_change("active", self.update)
         self.data_getter.on_change("active", self.update)
         self.date.on_change("value", self.update)
+        self.button.on_click(self.animate)
 
         self.update(None, None, None)
 
-        self.button = Button(label="► Play", width=60)
-        self.button.on_click(self.animate)
-
-        controls = row(
+        controls = column(
             [
                 self.per_capita,
                 self.data_getter,
                 self.date,
                 self.save_files,
                 self.button,
-            ]
+            ],
+            sizing_mode="fixed",
+            width=300,
+            height=600,
         )
-        return column(self.p, controls)
+
+        return row(controls, self.p)
 
 
 class StateMap(MapBase):
