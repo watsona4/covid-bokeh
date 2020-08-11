@@ -587,8 +587,12 @@ class StateDisplay:
             sizing_mode="stretch_width",
         )
 
-        self.total = CheckboxGroup(
-            labels=["Show total only"], sizing_mode="stretch_width",
+        self.show_total = CheckboxGroup(
+            labels=["Show total"], sizing_mode="stretch_width",
+        )
+
+        self.total_only = CheckboxGroup(
+            labels=["Total only"], sizing_mode="stretch_width",
         )
 
         self.src = None
@@ -610,7 +614,8 @@ class StateDisplay:
         color_cycle = cycle(Category20_20)
         palette = [next(color_cycle) for _ in self.dataset]
 
-        total_only = self.total.active == [0]
+        show_total = self.show_total.active == [0]
+        total_only = self.total_only.active == [0]
 
         totals = None
         totals_denom = None
@@ -668,7 +673,7 @@ class StateDisplay:
                     subtotal_denom = subtotal_denom.reindex(idx, fill_value=0)
                     totals_denom += subtotal_denom
 
-            if not total_only:
+            if len(state_list) == 1 or not show_total or not total_only:
                 by_state["avg_date"].append(avg_dates.values)
                 by_state["avg_data"].append(avg_data.values)
 
@@ -681,7 +686,7 @@ class StateDisplay:
         if totals_denom is not None:
             totals /= totals_denom
 
-        if len(state_list) != 1:
+        if show_total:
             by_state["avg_date"].append(totals.index.values)
             by_state["avg_data"].append(totals.values)
             by_state["state"].append("Total")
@@ -768,7 +773,8 @@ class StateDisplay:
 
         self.update_data(label, new_src)
 
-        self.total.visible = len(states_to_plot) != 1
+        self.show_total.visible = len(states_to_plot) != 1
+        self.total_only.visible = self.show_total.active == [0]
 
     def run(self):
 
@@ -778,7 +784,8 @@ class StateDisplay:
         self.data_getter.on_change("active", self.update)
         self.plot_type.on_change("active", self.update)
         self.constant_date.on_change("value", self.update)
-        self.total.on_change("active", self.update)
+        self.show_total.on_change("active", self.update)
+        self.total_only.on_change("active", self.update)
 
         controls = column(
             [
@@ -787,7 +794,8 @@ class StateDisplay:
                 self.data_getter,
                 self.plot_type,
                 self.constant_date,
-                self.total,
+                self.show_total,
+                self.total_only,
             ],
             sizing_mode="fixed",
             width=300,
@@ -916,7 +924,6 @@ class SingleStateDisplay(StateDisplay):
                 self.data_getter,
                 self.plot_type,
                 self.constant_date,
-                self.total,
             ],
             sizing_mode="fixed",
             width=300,
