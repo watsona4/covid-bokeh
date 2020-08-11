@@ -596,7 +596,13 @@ class StateDisplay:
 
     def make_dataset(self, state_list):
 
-        by_state = {"avg_date": [], "avg_data": [], "state": [], "color": []}
+        by_state = {
+            "avg_date": [],
+            "avg_data": [],
+            "state": [],
+            "color": [],
+            "line-width": [],
+        }
 
         color_cycle = cycle(Category20_20)
         palette = [next(color_cycle) for _ in self.dataset]
@@ -667,6 +673,7 @@ class StateDisplay:
                 by_state["color"].append(
                     palette[self.dataset.index(state_name)]
                 )
+                by_state["line-width"].append(1)
 
         if totals_denom is not None:
             totals /= totals_denom
@@ -676,6 +683,7 @@ class StateDisplay:
             by_state["avg_data"].append(totals.values)
             by_state["state"].append("Total")
             by_state["color"].append("black")
+            by_state["line-width"].append(2)
 
         return label, ColumnDataSource(by_state)
 
@@ -694,7 +702,7 @@ class StateDisplay:
             ys="avg_data",
             legend_field="state",
             color="color",
-            line_width=2,
+            line_width="line-width",
         )
 
         self.p.legend.location = "top_left"
@@ -713,7 +721,7 @@ class StateDisplay:
             ys="avg_data",
             legend_field="state",
             color="color",
-            line_width=2,
+            line_width="line-width",
         )
 
         self.logp.legend.location = "top_left"
