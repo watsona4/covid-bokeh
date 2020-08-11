@@ -160,6 +160,7 @@ STATE_ABBRV = {
     "Colorado": "CO",
     "Connecticut": "CT",
     "Delaware": "DE",
+    "District of Columbia": "DC",
     "Florida": "FL",
     "Georgia": "GA",
     "Hawaii": "HI",
@@ -455,6 +456,8 @@ def get_data(region, per_capita=False, data_type="cases", constant_date=None):
 
     data = dict()
     test_data = None
+    tot_positive = None
+    tot_testing = None
 
     if data_type in ("cases", "deaths"):
 
@@ -491,6 +494,8 @@ def get_data(region, per_capita=False, data_type="cases", constant_date=None):
 
         if data_type == "positivity":
             data = subset["positivity"]
+            tot_positive = subset["positive"] * 100
+            tot_testing = subset["totalTestResults"]
             label = "Positivity (%)"
         elif data_type == "testing":
             data = subset["totalTestResultsIncrease"]
@@ -529,7 +534,16 @@ def get_data(region, per_capita=False, data_type="cases", constant_date=None):
             else:
                 label = f"Total New {label.title()}"
 
-    return dates, avg_dates, data, avg_data, test_data, label
+    return (
+        dates,
+        avg_dates,
+        data,
+        avg_data,
+        test_data,
+        label,
+        tot_positive,
+        tot_testing,
+    )
 
 
 class StateDisplay:
@@ -590,6 +604,7 @@ class StateDisplay:
         total_only = self.total.active == [0]
 
         totals = None
+        totals_denom = None
 
         for state_name in state_list:
 
@@ -599,19 +614,38 @@ class StateDisplay:
             ].lower()
             constant_date = self.constant_date.value
 
-            dates, avg_dates, data, avg_data, test_data, label = get_data(
-                state_name, per_capita, data_getter, constant_date
-            )
+            (
+                dates,
+                avg_dates,
+                data,
+                avg_data,
+                test_data,
+                label,
+                tot_positive,
+                tot_testing,
+            ) = get_data(state_name, per_capita, data_getter, constant_date)
 
-            subtotal = pd.Series(avg_data.values[7:])
-            subtotal.index = pd.DatetimeIndex(avg_dates.values[7:])
+            if tot_positive is None and tot_testing is None:
+                subtotal = pd.Series(avg_data.values[7:])
+                subtotal.index = pd.DatetimeIndex(avg_dates.values[7:])
+                subtotal_denom = None
+            else:
+                subtotal = pd.Series(tot_positive.values[7:])
+                subtotal.index = pd.DatetimeIndex(avg_dates.values[7:])
+                subtotal_denom = pd.Series(tot_testing.values[7:])
+                subtotal_denom.index = pd.DatetimeIndex(avg_dates.values[7:])
 
             idx = pd.date_range(subtotal.index.min(), subtotal.index.max())
             subtotal = subtotal.reindex(idx)
             subtotal.interpolate(method="time", inplace=True)
+            if subtotal_denom is not None:
+                subtotal_denom = subtotal_denom.reindex(idx)
+                subtotal_denom.interpolate(method="time", inplace=True)
 
             if totals is None:
                 totals = subtotal
+                if subtotal_denom is not None:
+                    totals_denom = subtotal_denom
             else:
                 idx = pd.date_range(
                     min(subtotal.index.min(), totals.index.min()),
@@ -620,6 +654,10 @@ class StateDisplay:
                 totals = totals.reindex(idx, fill_value=0)
                 subtotal = subtotal.reindex(idx, fill_value=0)
                 totals += subtotal
+                if subtotal_denom is not None:
+                    totals_denom = totals_denom.reindex(idx, fill_value=0)
+                    subtotal_denom = subtotal_denom.reindex(idx, fill_value=0)
+                    totals_denom += subtotal_denom
 
             if not total_only:
                 by_state["avg_date"].append(avg_dates.values)
@@ -629,6 +667,9 @@ class StateDisplay:
                 by_state["color"].append(
                     palette[self.dataset.index(state_name)]
                 )
+
+        if totals_denom is not None:
+            totals /= totals_denom
 
         if len(state_list) != 1:
             by_state["avg_date"].append(totals.index.values)
@@ -763,9 +804,16 @@ class SingleStateDisplay(StateDisplay):
         data_getter = self.data_getter.labels[self.data_getter.active].lower()
         constant_date = self.constant_date.value
 
-        dates, avg_dates, data, avg_data, test_data, label = get_data(
-            state_name, per_capita, data_getter, constant_date
-        )
+        (
+            dates,
+            avg_dates,
+            data,
+            avg_data,
+            test_data,
+            label,
+            tot_positive,
+            tot_testing,
+        ) = get_data(state_name, per_capita, data_getter, constant_date)
 
         data_dict = {
             "date": dates.values,
