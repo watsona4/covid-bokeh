@@ -19,6 +19,7 @@ from bokeh.models import (
     BasicTicker,
     ColorBar,
     ColumnDataSource,
+    HoverTool,
     LinearAxis,
     LinearColorMapper,
     LogAxis,
@@ -594,6 +595,8 @@ class StateDisplay:
         self.p = None
         self.logp = None
 
+        self.tooltips = [("State", "@state")]
+
     def make_dataset(self, state_list):
 
         by_state = {
@@ -705,6 +708,8 @@ class StateDisplay:
             line_width="line-width",
         )
 
+        self.p.add_tools(HoverTool(tooltips=self.tooltips))
+
         self.p.legend.location = "top_left"
 
         self.logp = figure(
@@ -723,6 +728,8 @@ class StateDisplay:
             color="color",
             line_width="line-width",
         )
+
+        self.logp.add_tools(HoverTool(tooltips=self.tooltips))
 
         self.logp.legend.location = "top_left"
 
@@ -1076,7 +1083,7 @@ class CountyDisplay(StateDisplay):
 
         self.data_getter.labels = ["Cases", "Deaths"]
 
-        self.show_constant_date = False
+        self.tooltips = [("County", "@state")]
 
 
 class NNLDisplay(StateDisplay):
@@ -1103,7 +1110,7 @@ class NNLDisplay(StateDisplay):
 
         self.data_getter.labels = ["Cases"]
 
-        self.show_constant_date = False
+        self.tooltips = [("Location", "@state")]
 
 
 class MapBase:
