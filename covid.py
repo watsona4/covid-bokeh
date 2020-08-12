@@ -1101,7 +1101,7 @@ class NNLDisplay(StateDisplay):
             "New York, Schenectady",
             "Pennsylvania, Allegheny",
             "New York, Saratoga",
-            "Idaho, Butte",
+            "Idaho, Bonneville",
             "South Carolina, Berkeley",
         ]
 
@@ -1168,7 +1168,7 @@ class MapBase:
         self.p = figure(
             toolbar_location="left",
             tooltips=self.tooltips,
-            width=1200,
+            width=1000,
             aspect_ratio=1.8,
         )
 
