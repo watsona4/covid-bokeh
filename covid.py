@@ -937,6 +937,28 @@ class SingleStateDisplay(StateDisplay):
         return row(controls, plots, sizing_mode="stretch_both")
 
 
+class SingleCountyDisplay(SingleStateDisplay):
+    def __init__(self):
+
+        super().__init__()
+
+        self.state = "New York, Washington"
+        self.menu = COUNTIES
+
+        self.state_selection = Dropdown(
+            menu=self.menu, label=self.state, sizing_mode="stretch_width"
+        )
+
+        self.data_getter = RadioGroup(
+            labels=[
+                "Cases",
+                "Deaths",
+            ],
+            active=0,
+            sizing_mode="stretch_width",
+        )
+
+
 class RatioDisplay(SingleStateDisplay):
     def make_dataset(self, state_name=""):
 
@@ -1503,11 +1525,12 @@ if __name__ == "__main__":
 tab1 = Panel(child=StateDisplay().run(), title="State Comparisons")
 tab2 = Panel(child=CountyDisplay().run(), title="County Comparisons")
 tab3 = Panel(child=SingleStateDisplay().run(), title="State Data")
-tab4 = Panel(child=RatioDisplay().run(), title="State Ratio")
-tab5 = Panel(child=StateMap().run(), title="State Map")
-tab6 = Panel(child=CountyMap().run(), title="County Map")
-tab7 = Panel(child=NNLDisplay().run(), title="NNL Comparisons")
+tab4 = Panel(child=SingleCountyDisplay().run(), title="County Data")
+tab5 = Panel(child=RatioDisplay().run(), title="State Ratio")
+tab6 = Panel(child=StateMap().run(), title="State Map")
+tab7 = Panel(child=CountyMap().run(), title="County Map")
+tab8 = Panel(child=NNLDisplay().run(), title="NNL Comparisons")
 
-tabs = Tabs(tabs=[tab1, tab2, tab3, tab4, tab5, tab6, tab7])
+tabs = Tabs(tabs=[tab3, tab4, tab1, tab2, tab5, tab6, tab7, tab8])
 
 curdoc().add_root(tabs)
