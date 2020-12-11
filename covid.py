@@ -67,6 +67,11 @@ NNL_POP = {
     "Non-NNL Liberty Street": 105,
 }
 
+ROLLING = timedelta(days=7)
+NNL_ROLLING = timedelta(days=30)
+ROLLING_DAYS = int(ROLLING / timedelta(days=1))
+NNL_ROLLING_DAYS = int(NNL_ROLLING / timedelta(days=1))
+
 EMPTY_COUNTIES = {
     "Alaska": ["Borough", "Census Area"],
     "District of Columbia": ["District of Columbia"],
@@ -218,11 +223,11 @@ def compute_states_data():
         state = subset["state"].values[0]
         pop = population(state)
 
-        avg_dates = subset["date"] - (timedelta(days=3) + timedelta(hours=12))
+        avg_dates = subset["date"] - ROLLING / 2
         diff_cases = subset["cases"].diff()
         diff_deaths = subset["deaths"].diff()
-        avg_cases = subset["cases"].diff().rolling(7).mean()
-        avg_deaths = subset["deaths"].diff().rolling(7).mean()
+        avg_cases = subset["cases"].diff().rolling(ROLLING_DAYS).mean()
+        avg_deaths = subset["deaths"].diff().rolling(ROLLING_DAYS).mean()
 
         diff_cases_pc = diff_cases / pop * 100000
         diff_deaths_pc = diff_deaths / pop * 100000
@@ -259,11 +264,11 @@ def compute_counties_data():
 
         pop = population(f"{state}, {county}")
 
-        avg_dates = subset["date"] - (timedelta(days=3) + timedelta(hours=12))
+        avg_dates = subset["date"] - ROLLING / 2
         diff_cases = subset["cases"].diff()
         diff_deaths = subset["deaths"].diff()
-        avg_cases = subset["cases"].diff().rolling(7).mean()
-        avg_deaths = subset["deaths"].diff().rolling(7).mean()
+        avg_cases = subset["cases"].diff().rolling(ROLLING_DAYS).mean()
+        avg_deaths = subset["deaths"].diff().rolling(ROLLING_DAYS).mean()
 
         diff_cases_pc = diff_cases / pop * 100000
         diff_deaths_pc = diff_deaths / pop * 100000
@@ -324,9 +329,9 @@ def compute_nnl_data():
 
         pop = population(site)
 
-        avg_dates = subset["date"] - (timedelta(days=3) + timedelta(hours=12))
+        avg_dates = subset["date"] - NNL_ROLLING / 2
         diff_cases = subset["cases"].diff()
-        avg_cases = subset["cases"].diff().rolling(7).mean()
+        avg_cases = subset["cases"].diff().rolling(NNL_ROLLING_DAYS).mean()
         diff_cases_pc = diff_cases / pop * 100000
         avg_cases_pc = avg_cases / pop * 100000
 
