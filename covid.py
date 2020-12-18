@@ -68,7 +68,7 @@ NNL_POP = {
 }
 
 ROLLING = timedelta(days=7)
-NNL_ROLLING = timedelta(days=30)
+NNL_ROLLING = timedelta(days=7)
 ROLLING_DAYS = int(ROLLING / timedelta(days=1))
 NNL_ROLLING_DAYS = int(NNL_ROLLING / timedelta(days=1))
 
