@@ -126,13 +126,28 @@ REPLACE_COUNTIES = {
     "New Mexico": {"Doña Ana": "Do�a Ana County, New Mexico"},
 }
 
-GH_STATES_DATA = pd.read_csv(
-    "us-states.csv", parse_dates=["date", "avg_dates"]
-)
-GH_COUNTIES_DATA = pd.read_csv(
-    "us-counties.csv", parse_dates=["date", "avg_dates"]
-)
-NNL_DATA = pd.read_csv("nnl-detailed.csv", parse_dates=["date", "avg_dates"])
+if os.path.exists("us-states.csv"):
+    GH_STATES_DATA = pd.read_csv(
+        "us-states.csv", parse_dates=["date", "avg_dates"]
+    )
+else:
+    GH_STATES_DATA = pd.read_csv(
+        os.path.join("covid-19-data", "us-states.csv"), parse_dates=["date"]
+    )
+
+if os.path.exists("us-counties.csv"):
+    GH_COUNTIES_DATA = pd.read_csv(
+        "us-counties.csv", parse_dates=["date", "avg_dates"]
+    )
+else:
+    GH_COUNTIES_DATA = pd.read_csv(
+        os.path.join("covid-19-data", "us-counties.csv"), parse_dates=["date"]
+    )
+
+if os.path.exists("nnl-detailed.csv"):
+    NNL_DATA = pd.read_csv(
+        "nnl-detailed.csv", parse_dates=["date", "avg_dates"]
+    )
 
 STATES = sorted(GH_STATES_DATA["state"].unique())
 COUNTIES = sorted(
