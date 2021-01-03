@@ -924,6 +924,8 @@ class SingleStateDisplay(StateDisplay):
 
         self.update_data(label, new_src)
 
+        self.p.title.text = self.state
+
     def update_selection(self, event):
         self.state = event.item
         self.state_selection.label = self.state
